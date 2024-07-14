@@ -1,46 +1,51 @@
 import json
-import itertools
 import pandas as pd
 
 
-def is_unique_combination(data, combination):
-    seen = set()
-    for entry in data:
-        try:
-            identifier = tuple(entry[key] for key in combination)
-        except KeyError:
-            return False
-        if identifier in seen:
-            return False
-        seen.add(identifier)
-    return True
+def find_minimal_identifiers(data):
+    df = pd.DataFrame(data)
+    columns = df.columns.tolist()
+    selected_columns = []
+
+    while True:
+        best_column = None
+        best_uniq_count = 0
+
+        for column in columns:
+            if column in selected_columns:
+                continue
+
+            current_columns = selected_columns + [column]
+            uniq_count = df[current_columns].drop_duplicates().shape[0]
+
+            if uniq_count > best_uniq_count:
+                best_column = column
+                best_uniq_count = uniq_count
+
+            if best_uniq_count == df.shape[0]:
+                break
+
+        if best_column is not None:
+            selected_columns.append(best_column)
+
+        if best_uniq_count == df.shape[0]:
+            break
+
+    return selected_columns
 
 
-def find_minimal_unique_combination(data):
-    keys = list(data[0].keys())
-    for r in range(1, len(keys) + 1):
-        for combination in itertools.combinations(keys, r):
-            if is_unique_combination(data, combination):
-                return combination
-    return keys
+def main(json_str):
+    data = json.loads(json_str)
+    minimal_identifiers = find_minimal_identifiers(data)
 
+    result_df = pd.DataFrame(minimal_identifiers, columns=["Признаки"])
+    csv_result = result_df.to_csv(index=False, encoding='utf-8')
 
-def main(json_file_path):
-    with open(json_file_path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
-    minimal_combination = find_minimal_unique_combination(data)
-    print(f"Minimal unique combination found: {minimal_combination}")
-    df = pd.DataFrame(minimal_combination, columns=['Признак'])
-    output_csv = df.to_csv(index=False, encoding='utf-8')
-
-    # Save to file
-    with open('output.csv', 'w', encoding='utf-8') as f:
-        f.write(output_csv)
-
-    return output_csv
+    return csv_result
 
 
 if __name__ == "__main__":
-    json_file_path = 'data.json'
-    csv_output = main(json_file_path)
-    print(csv_output)
+    file_path = 'data1.json'  # Укажите путь к вашему файлу JSON
+    with open(file_path, 'r', encoding='utf-8') as file:
+        json_str = file.read()
+    print(main(json_str))
