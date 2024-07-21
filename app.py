@@ -1,51 +1,61 @@
 import json
 import pandas as pd
 
-
-def find_minimal_identifiers(data):
-    df = pd.DataFrame(data)
-    columns = df.columns.tolist()
-    selected_columns = []
+# Функция для нахождения минимального набора признаков, уникально идентифицирующих каждую запись
+def find_unique_identifiers(records):
+    dataframe = pd.DataFrame(records)  # Преобразуем входные данные в DataFrame
+    columns_list = dataframe.columns.tolist()  # Получаем список всех столбцов
+    selected_columns = []  # Инициализируем список выбранных столбцов
 
     while True:
-        best_column = None
-        best_uniq_count = 0
+        optimal_column = None
+        highest_unique_count = 0
 
-        for column in columns:
+        # Перебираем все столбцы, которые еще не были выбраны
+        for column in columns_list:
             if column in selected_columns:
                 continue
 
+            # Текущая комбинация выбранных столбцов плюс текущий столбец
             current_columns = selected_columns + [column]
-            uniq_count = df[current_columns].drop_duplicates().shape[0]
+            # Считаем количество уникальных строк для текущей комбинации столбцов
+            unique_count = dataframe[current_columns].drop_duplicates().shape[0]
 
-            if uniq_count > best_uniq_count:
-                best_column = column
-                best_uniq_count = uniq_count
+            # Если количество уникальных строк больше, чем ранее найденное максимальное
+            if unique_count > highest_unique_count:
+                optimal_column = column  # Обновляем лучший столбец
+                highest_unique_count = unique_count  # Обновляем максимальное количество уникальных строк
 
-            if best_uniq_count == df.shape[0]:
+            # Если текущее количество уникальных строк равно общему числу строк в DataFrame, прерываем цикл
+            if highest_unique_count == dataframe.shape[0]:
                 break
 
-        if best_column is not None:
-            selected_columns.append(best_column)
+        # Добавляем найденный лучший столбец к выбранным столбцам
+        if optimal_column is not None:
+            selected_columns.append(optimal_column)
 
-        if best_uniq_count == df.shape[0]:
+        # Если текущее количество уникальных строк равно общему числу строк в DataFrame, прерываем цикл
+        if highest_unique_count == dataframe.shape[0]:
             break
 
-    return selected_columns
+    return selected_columns  # Возвращаем список выбранных столбцов
 
+# Основная функция, принимающая JSON-строку и возвращающая CSV-строку
+def main(input_json):
+    data = json.loads(input_json)  # Загружаем данные из JSON-строки
+    unique_identifiers = find_unique_identifiers(data)  # Находим минимальный набор идентифицирующих признаков
 
-def main(json_str):
-    data = json.loads(json_str)
-    minimal_identifiers = find_minimal_identifiers(data)
+    # Создаем DataFrame из найденных признаков
+    result_dataframe = pd.DataFrame(unique_identifiers, columns=["Attributes"])
+    # Преобразуем DataFrame в CSV-строку
+    csv_output = result_dataframe.to_csv(index=False, encoding='utf-8')
 
-    result_df = pd.DataFrame(minimal_identifiers, columns=["Признаки"])
-    csv_result = result_df.to_csv(index=False, encoding='utf-8')
-
-    return csv_result
-
+    return csv_output  # Возвращаем CSV-строку
 
 if __name__ == "__main__":
     file_path = 'data1.json'  # Укажите путь к вашему файлу JSON
+    # Открываем файл и читаем его содержимое
     with open(file_path, 'r', encoding='utf-8') as file:
-        json_str = file.read()
-    print(main(json_str))
+        json_content = file.read()
+    # Вызываем основную функцию и печатаем результат
+    print(main(json_content))
